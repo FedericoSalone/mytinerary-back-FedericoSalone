@@ -2,69 +2,59 @@ import User from '../Models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-export const signUp = async (req, res) => {
+export const signUp = async (req, res,next) => {
     try {
-        const { firstName, lastName, email, password } = req.body;
 
-        const userInDB = await User.findOne({ email });
+        const passwordHash = bcrypt.hashSync(req.body.password, 10)
 
-        if (userInDB) {
-            return res.json({ success: false, error: "The email is already registered" });
-        }
+        let body = {...req.body}
+        body.password = passwordHash
 
-        const passwordHash = bcrypt.hashSync(password, 10);
+        const newUser = await User.create(body)
 
-        const newUser = await User.create({
-            firstName,
-            lastName,
-            email,
-            password: passwordHash,
-        });
+        let {firstName, lastName, email, password } = newUser
 
-        const userResponse = {
-            email: newUser.email,
-            image: newUser.image,
-            name: newUser.name,
-            _id: newUser._id,
-        };
+        const token = jwt.sign( { firstName, lastName, email, password  }, process.env['SECRET_KEY'], { expiresIn: '1h'})
 
-        const token = jwt.sign({ email: newUser.email }, process.env.SECRET_KEY, { expiresIn: '1h' });
-
-        return res.status(201).json({ success: true, user: userResponse, token: token });
+        return res.status(201).json({
+            success: true, 
+            response: {firstName, lastName, email, password },
+            token: token,
+            message: 'Sign up successfully.'
+        })
 
     } catch (error) {
         res.json({ success: false, error: error.message });
     }
 };
 
-export const signIn = async (req, res) => {
+export const signIn = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
 
-        const userInDB = await User.findOne({ email });
+        const user = await User.findOne({ email: req.body.email})
 
-        if (!userInDB) {
-            return res.json({ success: false, error: "Incorrect email or password" });
+        if (!user) {
+            throw new Error("There are no users with this email address.")
         }
 
-        const validPassword = bcrypt.compareSync(password, userInDB.password);
+        let passwordIsCorrect = bcrypt.compareSync(req.body.password, user.password)
 
-        if (!validPassword) {
-            return res.json({ success: false, error: "Incorrect email or password" });
+        if (!passwordIsCorrect){
+            throw new Error("Incorrect email address or password")
         }
 
-        const userResponse = {
-            email: userInDB.email,
-            image: userInDB.image,
-            name: userInDB.name,
-            _id: userInDB._id,
-        };
+        let {firstName, lastName, email, password} = user
 
-        const token = jwt.sign({ email: userInDB.email }, process.env.SECRET_KEY);
+        const token = jwt.sign( { firstName, lastName, email, password }, process.env['SECRET_KEY'], { expiresIn: '1h'})
 
-        return res.status(200).json({ success: true, user: userResponse, token: token });
+        return res.status(200).json({
+            success: true, 
+            response: {firstName, lastName, email, password},
+            token: token,
+            message: 'Sign in successfully.'
+        })
 
-    } catch (error) {
+    }  catch (error) {
         res.json({ success: false, error: error.message });
     }
 };
@@ -120,12 +110,14 @@ export const deleteUser = async (req, res) => {
 };
 
 export const signInToken = (req, res) => {
-    const userResponse = {
-        email: req.user.email,
-        image: req.user.image,
-        name: req.user.name,
-        _id: req.user._id,
-    };
+    const { firstName, lastName, email, password} = req.user
+
+    res.status(200).json({
+        success:true,
+        response: {firstName, lastName, email, password},
+        message: 'Sign in successfully.',
+        body: req.body
+    })
     res.status(200).json({ success: true, user: userResponse });
 };
 

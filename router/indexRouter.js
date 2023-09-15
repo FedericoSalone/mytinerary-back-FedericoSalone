@@ -26,7 +26,7 @@ indexRouter.post('/activities', activitiesControllers.postActivity);
 
 indexRouter.post("/signup", signUp); 
 indexRouter.post("/signin", signIn);
-indexRouter.post('/signin/token', passort.authenticate('jwt', { session: false }), signInToken);
+indexRouter.get('/signin/token', passort.authenticate('jwt', { session: false }), signInToken);
 indexRouter.put('/update', passort.authenticate('jwt', { session: false }), updateUser);
 indexRouter.delete('/delete', passort.authenticate('jwt', { session: false }), deleteUser);
 

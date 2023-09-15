@@ -37,6 +37,15 @@ export const signUpSchema = joi.object({
     country: joi.string(),
 });
 
+export const signInSchema = joi.object({
+    email: joi.string().email().required().messages({
+        "string.empty" : "The field email cannot be empty.",
+        "any.required" : "The email is required",
+        "string.email" : "Invalid email address. Please enter a valid email."
+    }),
+    password: joiPassword(complexityOptions)
+})
+
 const validator = (req, res, next) => {
     const validate = signUpSchema.validate(req.body, { abortEarly: false });
 
